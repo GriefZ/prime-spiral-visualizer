@@ -1,0 +1,1 @@
+# Beauty of Numbers Visualizer Project
