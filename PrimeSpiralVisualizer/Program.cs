@@ -1,12 +1,12 @@
 ﻿using SpiralMaker;
 
 DateTime start = DateTime.Now;
-PlotUtils.CreatePlot(GeneratePrimes(80000), 50, 8, filePath: "plot80000TrColored8.png");
+PlotUtils.CreatePlot(GeneratePrimes(80000), 50, 9, filePath: "plot80000TrColored9.png");
 Console.WriteLine($"Done for {(DateTime.Now - start).Milliseconds} milliseconds!");
 
-static List<double> GenerateNumbers(int count)
+static List<int> GenerateNumbers(int count)
 {
-    var numbers = new List<double>();
+    var numbers = new List<int>();
     for (int i = 1; i <= count; i++)
     {
         numbers.Add(i);
