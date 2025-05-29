@@ -6,16 +6,16 @@ using OxyPlot.SkiaSharp;
 namespace SpiralMaker
 {
     public class PlotUtils
-    {   
+    {
         /* TODO: Generate a file name based on the remaining parameters*/
-        public static void CreatePlot(IEnumerable<int> nums, double figsize = 8, double maxPointSize = 5, bool showAnnot = false, string filePath = "plot.png") 
+        public static void CreatePlot(IEnumerable<int> nums, int figsize = 8, double maxPointSize = 5, bool showAnnot = false, string filePath = "plot.png")
         {
             var numsList = new List<int>(nums);
             var (x, y) = GetCoordinate(numsList);
 
             var plotModel = new PlotModel { PlotType = PlotType.Polar, Background = OxyColors.White, IsLegendVisible = false, Title = "Prime Spiral" };
             plotModel.PlotAreaBorderColor = OxyColors.Transparent;
-            
+
             // Axes and remove grid lines
             var angleAxis = new AngleAxis
             {
@@ -37,8 +37,8 @@ namespace SpiralMaker
             plotModel.Axes.Add(magnitudeAxis);
             plotModel.TextColor = OxyColors.Transparent;
 
-            ScatterSeries scatterSeries; 
-            
+            ScatterSeries scatterSeries;
+
             OxyColor color;
 
             for (int i = 0; i < x.Count; i++)
@@ -54,11 +54,11 @@ namespace SpiralMaker
                 scatterSeries = new ScatterSeries { MarkerType = MarkerType.Circle, MarkerFill = color };
 
                 double minPointSize = 0.5;
-                double maxRadius = x[^1] / 6.28; 
+                double maxRadius = x[^1] / 6.28;
                 double curRadius = x[i] / 6.28;
                 double growSpeed = 1; // > 0 only; < 1 - growth slowing down; > 1 - growth accelerating
                 double pointSizeCooficient = minPointSize + (maxPointSize - minPointSize) * Math.Pow(curRadius / maxRadius, growSpeed);
-                //double pointSizeCooficient = pointSize * x[i] / 6.18 / 36000;
+
                 scatterSeries.Points.Add(new ScatterPoint(x[i], y[i], pointSizeCooficient));
 
 
@@ -73,17 +73,26 @@ namespace SpiralMaker
                     plotModel.Annotations.Add(textAnnotation);
                 }
                 plotModel.Series.Add(scatterSeries);
-
             }
-
-            // Export to a PNG file TODO: Dedicated service
-            using (var stream = File.Create(filePath))
-            {
-                var pngExporter = new PngExporter { Width = (int)(figsize * 100), Height = (int)(figsize * 100), Dpi = 300 };
-                pngExporter.Export(plotModel, stream);
-            }
+            SaveToPng(plotModel, filePath, figsize);
         }
 
+        public static bool SaveToPng(PlotModel model, string filePath, int size)
+        {
+            try
+            {
+                using (var stream = File.Create(filePath))
+                {
+                    var pngExporter = new PngExporter { Width = (int)(size * 100), Height = (int)(size * 100), Dpi = 300 };
+                    pngExporter.Export(model, stream);
+                }
+            }
+            catch
+            {
+                return false;
+            }
+            return true;
+        }
         private static (List<double> x, List<double> y) GetCoordinate(List<int> nums) // FIXME: Coordinates don't need separate numbers for axes
         {
             List<double> xCoords = [];
