@@ -1,8 +1,10 @@
-﻿using SpiralMaker;
+﻿using System.Diagnostics;
+using SpiralMaker;
 
-DateTime start = DateTime.Now;
+Stopwatch stopwatch = Stopwatch.StartNew();
 PlotUtils.CreatePlot(GeneratePrimes(80000), 50, 9, filePath: "plot80000TrColored9.png");
-Console.WriteLine($"Done for {(DateTime.Now - start).Milliseconds} milliseconds!");
+stopwatch.Stop();
+Console.WriteLine($"Done for {stopwatch.ElapsedMilliseconds} milliseconds!");
 
 static List<int> GenerateNumbers(int count)
 {
@@ -17,15 +19,15 @@ static List<int> GenerateNumbers(int count)
 static List<int> GeneratePrimes(int max) // TODO: Separate servies with different algorithms 
 {
     List<int> primes = new List<int>();
-    
+
     if (max < 2)
         return primes;
-    
+
     primes.Add(2);
-    
+
     int nextPrime = 3;
     bool isPrime;
-    
+
     while (nextPrime <= max)
     {
         int sqrt = (int)Math.Sqrt(nextPrime);
