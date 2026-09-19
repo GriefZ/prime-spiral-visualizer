@@ -11,7 +11,10 @@ namespace PrimeSpiralVisualizerUI.Converters
         {
             if (value is bool boolValue)
             {
-                return boolValue ? Visibility.Visible : Visibility.Collapsed;
+                bool isInverse = parameter is string parameterText
+                    && string.Equals(parameterText, "Inverse", StringComparison.OrdinalIgnoreCase);
+                bool isVisible = isInverse ? !boolValue : boolValue;
+                return isVisible ? Visibility.Visible : Visibility.Collapsed;
             }
             return Visibility.Collapsed;
         }

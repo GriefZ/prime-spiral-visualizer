@@ -348,7 +348,7 @@ namespace PrimeSpiralVisualizerUI.ViewModels
                 throw new ArgumentException("Please enter a valid number for count");
             }
 
-            count = Math.Max(10, Math.Min(count, 100000));
+            count = Math.Max(MinNumber, Math.Min(count, MaxNumber));
 
             Progress = 10;
             List<int> numbers = IsPrimeNumbersSelected ?
@@ -356,7 +356,7 @@ namespace PrimeSpiralVisualizerUI.ViewModels
                 await Task.Run(() => GenerateSequentialNumbers(count));
             Progress = 50;
 
-            PlotUtils.CreatePlot(
+            await Task.Run(() => PlotUtils.CreatePlot(
                 numbers,
                 figsize: 20,
                 maxPointSize: PointSize,
@@ -376,7 +376,7 @@ namespace PrimeSpiralVisualizerUI.ViewModels
                     nonPrimeColor.A,
                     nonPrimeColor.R,
                     nonPrimeColor.G,
-                    nonPrimeColor.B));
+                    nonPrimeColor.B)));
 
             Progress = 80;
             await Task.Run(() => LoadPreviewImage(filePath));
@@ -392,6 +392,7 @@ namespace PrimeSpiralVisualizerUI.ViewModels
                 bitmap.CacheOption = BitmapCacheOption.OnLoad;
                 bitmap.UriSource = new Uri(filePath, UriKind.RelativeOrAbsolute);
                 bitmap.EndInit();
+                bitmap.Freeze();
                 PreviewImage = bitmap;
             }
         }

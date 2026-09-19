@@ -5,10 +5,10 @@ namespace PrimeSpiralVisualizerUI
 {
     public partial class MainWindow : Window
     {
-        public MainWindow()
+        public MainWindow(MainWindowViewModel viewModel)
         {
             InitializeComponent();
-            DataContext = new MainWindowViewModel();
+            DataContext = viewModel;
         }
     }
 }

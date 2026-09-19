@@ -79,21 +79,13 @@ namespace SpiralMaker
             SaveToPng(plotModel, filePath, figsize);
         }
 
-        public static bool SaveToPng(PlotModel model, string filePath, int size)
+        public static void SaveToPng(PlotModel model, string filePath, int size)
         {
-            try
+            using (var stream = File.Create(filePath))
             {
-                using (var stream = File.Create(filePath))
-                {
-                    var pngExporter = new PngExporter { Width = (int)(size * 100), Height = (int)(size * 100), Dpi = 300 };
-                    pngExporter.Export(model, stream);
-                }
+                var pngExporter = new PngExporter { Width = (int)(size * 100), Height = (int)(size * 100), Dpi = 300 };
+                pngExporter.Export(model, stream);
             }
-            catch
-            {
-                return false;
-            }
-            return true;
         }
         private static bool IsPrime(int number)
         {
