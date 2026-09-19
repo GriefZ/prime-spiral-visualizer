@@ -8,12 +8,18 @@ namespace SpiralMaker
     public class PlotUtils
     {
         /* TODO: Generate a file name based on the remaining parameters*/
-        public static void CreatePlot(IEnumerable<int> nums, int figsize = 8, double maxPointSize = 5, bool showAnnot = false, string filePath = "plot.png")
+        public static void CreatePlot(IEnumerable<int> nums, int figsize = 8, double maxPointSize = 5, bool showAnnot = false,
+            string filePath = "plot.png", OxyColor? backgroundColor = null, OxyColor? primeColor = null, OxyColor? nonPrimeColor = null)
         {
             var numsList = new List<int>(nums);
             var (x, y) = GetCoordinate(numsList);
 
-            var plotModel = new PlotModel { PlotType = PlotType.Polar, Background = OxyColors.White, IsLegendVisible = false, Title = "Prime Spiral" };
+            var plotModel = new PlotModel {
+                PlotType = PlotType.Polar,
+                Background = backgroundColor.GetValueOrDefault(OxyColors.White),
+                IsLegendVisible = false,
+                Title = "Prime Spiral"
+            };
             plotModel.PlotAreaBorderColor = OxyColors.Transparent;
 
             // Axes and remove grid lines
@@ -43,14 +49,10 @@ namespace SpiralMaker
 
             for (int i = 0; i < x.Count; i++)
             {
-                color = (x[i] % 10) switch
-                {
-                    1 => OxyColor.Parse("#cb868686"),
-                    3 => OxyColor.Parse("#cbd5c29f"),
-                    7 => OxyColor.Parse("#cbb31414"),
-                    9 => OxyColor.Parse("#cb28324c"),
-                    _ => OxyColor.Parse("#cb000000"),
-                };
+                bool isPrime = IsPrime(numsList[i]);
+                color = isPrime ?
+                    primeColor.GetValueOrDefault(OxyColor.Parse("#cbb31414")) :
+                    nonPrimeColor.GetValueOrDefault(OxyColor.Parse("#cb868686"));
                 scatterSeries = new ScatterSeries { MarkerType = MarkerType.Circle, MarkerFill = color };
 
                 double minPointSize = 0.5;
@@ -93,6 +95,22 @@ namespace SpiralMaker
             }
             return true;
         }
+        private static bool IsPrime(int number)
+        {
+            if (number <= 1) return false;
+            if (number == 2) return true;
+            if (number % 2 == 0) return false;
+
+            var boundary = (int)Math.Floor(Math.Sqrt(number));
+
+            for (int i = 3; i <= boundary; i += 2)
+            {
+                if (number % i == 0) return false;
+            }
+
+            return true;
+        }
+
         private static (List<double> x, List<double> y) GetCoordinate(List<int> nums) // FIXME: Coordinates don't need separate numbers for axes
         {
             List<double> xCoords = [];
