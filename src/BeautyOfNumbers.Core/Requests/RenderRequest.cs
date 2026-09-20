@@ -9,4 +9,7 @@ public sealed record RenderRequest(
     string LayoutId,
     LayoutOptions Layout,
     RenderStyle Style,
-    OutputOptions Output);
+    OutputOptions Output)
+{
+    public SceneKey SceneKey => new(Range, ShowOnlyPrimes, LayoutId, Layout, Style.PointSize);
+}

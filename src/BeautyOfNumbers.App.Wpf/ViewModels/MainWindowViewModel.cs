@@ -1,6 +1,8 @@
 using System.ComponentModel;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using BeautyOfNumbers.App.Wpf.Services;
 using BeautyOfNumbers.Core;
 using BeautyOfNumbers.Core.Classifiers;
 using BeautyOfNumbers.Core.Colors;
@@ -22,15 +24,20 @@ public class MainWindowViewModel : INotifyPropertyChanged
     private const int MaxRangeEnd = 100_000_000;
     private const double MinPointSize = 0.5;
 
+    private readonly RenderScheduler scheduler = new();
+
     private string numberRangeStart = "1";
     private string numberRangeCount = "1000";
     private bool showOnlyPrimes = true;
     private Scene? scene;
+    private RenderRequest? sceneRequest;
     private double pointSize = 5;
     private Color backgroundColor = Colors.White;
     private Color primeColor = Colors.Red;
     private Color nonPrimeColor = Colors.Gray;
     private bool isGenerating;
+    private bool isSaving;
+    private CancellationTokenSource? saveCancellation;
     private int progress;
     private string validationMessage = string.Empty;
     private bool isValid = true;
@@ -38,15 +45,21 @@ public class MainWindowViewModel : INotifyPropertyChanged
 
     public MainWindowViewModel()
     {
-        GenerateCommand = new RelayCommand(GenerateImage, () => IsValid && !IsGenerating);
         SaveCommand = new RelayCommand(SaveImage, () => IsValid && !IsGenerating);
+        CancelCommand = new RelayCommand(CancelRender, () => IsGenerating);
+
+        scheduler.SceneReady += OnSceneReady;
+        scheduler.ProgressChanged += OnProgress;
+        scheduler.BusyChanged += OnBusyChanged;
+        scheduler.Failed += OnRenderFailed;
 
         ValidateInput();
+        RequestRender();
     }
 
-    public ICommand GenerateCommand { get; }
-
     public ICommand SaveCommand { get; }
+
+    public ICommand CancelCommand { get; }
 
     public RenderStyle CurrentStyle => BuildStyle();
 
@@ -59,6 +72,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
             {
                 isGenerating = value;
                 OnPropertyChanged();
+                CommandManager.InvalidateRequerySuggested();
             }
         }
     }
@@ -99,6 +113,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
                 numberRangeStart = value;
                 ValidateInput();
                 OnPropertyChanged();
+                RequestRender();
             }
         }
     }
@@ -113,6 +128,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
                 numberRangeCount = value;
                 ValidateInput();
                 OnPropertyChanged();
+                RequestRender();
             }
         }
     }
@@ -153,6 +169,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
             {
                 showOnlyPrimes = value;
                 OnPropertyChanged();
+                RequestRender();
             }
         }
     }
@@ -167,6 +184,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
                 pointSize = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(CurrentStyle));
+                RequestRender();
             }
         }
     }
@@ -218,8 +236,11 @@ public class MainWindowViewModel : INotifyPropertyChanged
         get => scene;
         private set
         {
-            scene = value;
-            OnPropertyChanged();
+            if (!ReferenceEquals(scene, value))
+            {
+                scene = value;
+                OnPropertyChanged();
+            }
         }
     }
 
@@ -288,47 +309,75 @@ public class MainWindowViewModel : INotifyPropertyChanged
         IsValid = true;
     }
 
-    private async void GenerateImage()
+    private void RequestRender()
     {
-        if (IsGenerating)
+        RenderRequest? request = BuildCurrentRequest();
+        if (request is null)
         {
             return;
         }
 
-        try
+        scheduler.Schedule(request);
+    }
+
+    private RenderRequest? BuildCurrentRequest()
+    {
+        if (!IsValid)
         {
-            IsGenerating = true;
+            return null;
+        }
+
+        if (!int.TryParse(NumberRangeStart, out int start) || !int.TryParse(NumberRangeCount, out int count))
+        {
+            return null;
+        }
+
+        return BuildRequest(start, Math.Clamp(count, MinNumber, MaxNumber));
+    }
+
+    private void CancelRender()
+    {
+        scheduler.Cancel();
+        saveCancellation?.Cancel();
+    }
+
+    private void OnSceneReady(object? sender, SceneReadyEventArgs e)
+    {
+        sceneRequest = e.Request;
+        Scene = e.Scene;
+    }
+
+    private void OnProgress(object? sender, ProgressReport report)
+    {
+        ApplyProgress(report);
+    }
+
+    private void OnBusyChanged(object? sender, bool isBusy)
+    {
+        if (isBusy)
+        {
             Progress = 0;
             ProgressStage = "Building...";
-
-            if (!int.TryParse(NumberRangeStart, out int start) || !int.TryParse(NumberRangeCount, out int count))
-            {
-                return;
-            }
-
-            count = Math.Clamp(count, MinNumber, MaxNumber);
-            RenderRequest request = BuildRequest(start, count);
-            var progressReporter = new Progress<ProgressReport>(OnProgress);
-
-            Scene? builtScene = await Task.Run(() =>
-            {
-                var classifier = new SievePrimeClassifier(SievePrimeClassifier.LimitFor(request.Range));
-                var builder = new SceneBuilder(classifier);
-                return builder.Build(request, progressReporter);
-            });
-
-            Scene = builtScene;
         }
-        catch (Exception ex)
-        {
-            System.Windows.MessageBox.Show($"Error generating preview: {ex.Message}", "Error",
-                System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
-        }
-        finally
-        {
-            IsGenerating = false;
-            ProgressStage = string.Empty;
-        }
+
+        UpdateIsGenerating();
+    }
+
+    private void OnRenderFailed(object? sender, Exception exception)
+    {
+        System.Windows.MessageBox.Show($"Error generating preview: {exception.Message}", "Error",
+            System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+    }
+
+    private void UpdateIsGenerating()
+    {
+        IsGenerating = isSaving || scheduler.IsBusy;
+    }
+
+    private void ApplyProgress(ProgressReport report)
+    {
+        ProgressStage = report.Stage == RenderStage.Building ? "Building scene..." : "Encoding PNG...";
+        Progress = (int)(report.Fraction * 100);
     }
 
     private async void SaveImage()
@@ -338,43 +387,79 @@ public class MainWindowViewModel : INotifyPropertyChanged
             return;
         }
 
+        var saveFileDialog = new SaveFileDialog
+        {
+            Filter = "PNG Image|*.png",
+            DefaultExt = ".png",
+            FileName = "spiral.png"
+        };
+
+        if (saveFileDialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        RenderRequest? request = BuildCurrentRequest();
+        if (request is null)
+        {
+            return;
+        }
+
+        string fileName = saveFileDialog.FileName;
+        var cancellation = new CancellationTokenSource();
+        saveCancellation = cancellation;
+        isSaving = true;
+        UpdateIsGenerating();
+        bool fileWritten = false;
+
         try
         {
-            var saveFileDialog = new SaveFileDialog
+            Progress = 0;
+            ProgressStage = "Building...";
+
+            var progressReporter = new Progress<ProgressReport>(ApplyProgress);
+            Scene exportScene;
+            if (Scene is not null && sceneRequest is not null && sceneRequest.SceneKey == request.SceneKey)
             {
-                Filter = "PNG Image|*.png",
-                DefaultExt = ".png",
-                FileName = "spiral.png"
-            };
-
-            if (saveFileDialog.ShowDialog() == true)
-            {
-                IsGenerating = true;
-                Progress = 0;
-                ProgressStage = "Building...";
-
-                if (!int.TryParse(NumberRangeStart, out int start) || !int.TryParse(NumberRangeCount, out int count))
-                {
-                    return;
-                }
-
-                count = Math.Clamp(count, MinNumber, MaxNumber);
-                RenderRequest request = BuildRequest(start, count);
-                var progressReporter = new Progress<ProgressReport>(OnProgress);
-
-                await Task.Run(() =>
-                {
-                    var classifier = new SievePrimeClassifier(SievePrimeClassifier.LimitFor(request.Range));
-                    var builder = new SceneBuilder(classifier);
-                    Scene exportScene = builder.Build(request, progressReporter);
-
-                    var renderer = new SkiaSceneRenderer();
-                    PngExporter.Export(exportScene, request.Style, request.Output, saveFileDialog.FileName, renderer, progressReporter);
-                });
-
-                System.Windows.MessageBox.Show($"Image saved to: {saveFileDialog.FileName}", "Success",
-                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                exportScene = Scene;
             }
+            else
+            {
+                Scene? previousScene = Scene;
+                scheduler.Cancel();
+                exportScene = await RenderScheduler.BuildAsync(request, progressReporter, cancellation.Token);
+
+                // A newer live delivery during the build wins over the exported scene.
+                if (ReferenceEquals(Scene, previousScene))
+                {
+                    sceneRequest = request;
+                    Scene = exportScene;
+                }
+            }
+
+            await Task.Run(
+                () =>
+                {
+                    PngExporter.Export(
+                        exportScene,
+                        request.Style,
+                        request.Output,
+                        fileName,
+                        new SkiaSceneRenderer(),
+                        progressReporter,
+                        cancellation.Token);
+                    fileWritten = true;
+                },
+                cancellation.Token);
+
+            cancellation.Token.ThrowIfCancellationRequested();
+
+            System.Windows.MessageBox.Show($"Image saved to: {fileName}", "Success",
+                System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+        }
+        catch (OperationCanceledException)
+        {
+            DeleteCanceledExport(fileName, fileWritten);
         }
         catch (Exception ex)
         {
@@ -383,16 +468,32 @@ public class MainWindowViewModel : INotifyPropertyChanged
         }
         finally
         {
-            IsGenerating = false;
+            cancellation.Dispose();
+            saveCancellation = null;
+            isSaving = false;
+            UpdateIsGenerating();
             ProgressStage = string.Empty;
-            Progress = 100;
+            Progress = 0;
         }
     }
 
-    private void OnProgress(ProgressReport report)
+    private static void DeleteCanceledExport(string fileName, bool fileWritten)
     {
-        ProgressStage = report.Stage == RenderStage.Building ? "Building scene..." : "Encoding PNG...";
-        Progress = (int)(report.Fraction * 100);
+        if (!fileWritten)
+        {
+            return;
+        }
+
+        try
+        {
+            File.Delete(fileName);
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
     }
 
     private RenderRequest BuildRequest(int start, int count)

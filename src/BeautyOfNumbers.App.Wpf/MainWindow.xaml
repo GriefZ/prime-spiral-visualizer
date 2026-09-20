@@ -167,12 +167,12 @@
     <StackPanel Grid.Row="4"
                 Orientation="Horizontal"
                 HorizontalAlignment="Center">
-      <Button Content="Generate Image"
-              Command="{Binding GenerateCommand}"
-              ToolTip="Generate a new spiral with current settings"/>
       <Button Content="Save Image"
               Command="{Binding SaveCommand}"
               ToolTip="Save the current spiral as an image file"/>
+      <Button Content="Cancel"
+              Command="{Binding CancelCommand}"
+              ToolTip="Cancel the running render"/>
     </StackPanel>
 
     <!-- Progress Bar -->
@@ -183,7 +183,6 @@
       </Grid.ColumnDefinitions>
       <ProgressBar Value="{Binding Progress, Mode=OneWay}"
                    Height="20"
-                   IsIndeterminate="{Binding IsGenerating}"
                    Visibility="{Binding IsGenerating, Converter={StaticResource BooleanToVisibilityConverter}}"/>
       <TextBlock Grid.Column="1"
                  Text="{Binding ProgressStage}"

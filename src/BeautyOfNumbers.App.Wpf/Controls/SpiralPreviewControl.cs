@@ -63,7 +63,7 @@ public sealed class SpiralPreviewControl : SKElement
     {
         if (d is SpiralPreviewControl control)
         {
-            control.ResetView();
+            control.InvalidateVisual();
         }
     }
 
@@ -140,12 +140,22 @@ public sealed class SpiralPreviewControl : SKElement
     {
         base.OnMouseDown(e);
 
-        if (e.ChangedButton == MouseButton.Left)
+        if (e.ChangedButton != MouseButton.Left)
         {
-            isPanning = true;
-            lastMousePosition = e.GetPosition(this);
-            CaptureMouse();
+            return;
         }
+
+        if (e.ClickCount == 2)
+        {
+            isPanning = false;
+            ReleaseMouseCapture();
+            ResetView();
+            return;
+        }
+
+        isPanning = true;
+        lastMousePosition = e.GetPosition(this);
+        CaptureMouse();
     }
 
     protected override void OnMouseMove(MouseEventArgs e)

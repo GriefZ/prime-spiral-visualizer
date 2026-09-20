@@ -36,9 +36,12 @@ public static class PngExporter
         progress?.Report(new ProgressReport(RenderStage.Encoding, 0.5f));
         renderer.Draw(canvas, scene, style, viewport);
         progress?.Report(new ProgressReport(RenderStage.Encoding, 0.95f));
+        cancellationToken.ThrowIfCancellationRequested();
 
         using SKImage image = surface.Snapshot();
         using SKData data = image.Encode(SKEncodedImageFormat.Png, 100);
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         byte[] png = data.ToArray();
         if (output.Dpi > 0)
