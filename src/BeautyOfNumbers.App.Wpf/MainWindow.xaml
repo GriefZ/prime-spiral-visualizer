@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:BeautyOfNumbers.App.Wpf"
         xmlns:vm="clr-namespace:BeautyOfNumbers.App.Wpf.ViewModels"
+        xmlns:controls="clr-namespace:BeautyOfNumbers.App.Wpf.Controls"
         xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
         mc:Ignorable="d"
         Title="Prime Spiral Visualizer" Height="700" Width="800"
@@ -185,55 +186,19 @@
                    IsIndeterminate="{Binding IsGenerating}"
                    Visibility="{Binding IsGenerating, Converter={StaticResource BooleanToVisibilityConverter}}"/>
       <TextBlock Grid.Column="1"
-                 Text="{Binding Progress, StringFormat={}{0}%, Mode=OneWay}"
+                 Text="{Binding ProgressStage}"
                  Margin="5,0,0,0"
                  VerticalAlignment="Center"
                  Visibility="{Binding IsGenerating, Converter={StaticResource BooleanToVisibilityConverter}}"/>
     </Grid>
 
-    <!-- Image Preview with Zoom Controls -->
-    <Grid Grid.Row="6" Margin="0,10">
-      <Grid.RowDefinitions>
-        <RowDefinition Height="Auto"/>
-        <RowDefinition Height="*"/>
-      </Grid.RowDefinitions>
-
-      <!-- Zoom Controls -->
-      <StackPanel Grid.Row="0"
-                  Orientation="Horizontal"
-                  HorizontalAlignment="Center"
-                  Margin="0,0,0,5">
-        <Button Content="Zoom In"
-                Width="80"
-                Command="{Binding ZoomInCommand}"
-                ToolTip="Increase zoom level"/>
-        <TextBlock Text="{Binding ZoomLevel, StringFormat={}Zoom: {0:P0}, Mode=OneWay}"
-                   Margin="10,0"
-                   VerticalAlignment="Center"/>
-        <Button Content="Zoom Out"
-                Width="80"
-                Command="{Binding ZoomOutCommand}"
-                ToolTip="Decrease zoom level"/>
-        <Button Content="Reset"
-                Width="80"
-                Command="{Binding ResetZoomCommand}"
-                Margin="10,0,0,0"
-                ToolTip="Reset zoom and position"/>
-      </StackPanel>
-
-      <!-- Scrollable Image Preview -->
-      <Border Grid.Row="1"
-              BorderBrush="Gray"
-              BorderThickness="1">
-        <ScrollViewer HorizontalScrollBarVisibility="Auto"
-                      VerticalScrollBarVisibility="Auto"
-                      PanningMode="Both">
-          <Image Source="{Binding PreviewImage, Mode=OneWay}"
-                 RenderTransform="{Binding ImageTransform}"
-                 RenderTransformOrigin="0.5,0.5"
-                 Stretch="None"/>
-        </ScrollViewer>
-      </Border>
-    </Grid>
+    <!-- Skia Live Preview -->
+    <Border Grid.Row="6"
+            BorderBrush="Gray"
+            BorderThickness="1">
+      <controls:SpiralPreviewControl x:Name="Preview"
+                                      Scene="{Binding Scene, Mode=OneWay}"
+                                      CurrentStyle="{Binding CurrentStyle}"/>
+    </Border>
   </Grid>
 </Window>

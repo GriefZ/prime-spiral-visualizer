@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <PackageReference Include="Extended.Wpf.Toolkit" />
+    <PackageReference Include="SkiaSharp.Views.WPF" />
   </ItemGroup>
 
   <ItemGroup>

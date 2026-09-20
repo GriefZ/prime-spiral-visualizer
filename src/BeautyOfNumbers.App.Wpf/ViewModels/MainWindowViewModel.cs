@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
-using System.Windows.Media.Imaging;
 using BeautyOfNumbers.Core;
 using BeautyOfNumbers.Core.Classifiers;
 using BeautyOfNumbers.Core.Colors;
@@ -13,27 +12,20 @@ using BeautyOfNumbers.Rendering;
 using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
 using Color = System.Windows.Media.Color;
 using Colors = System.Windows.Media.Colors;
-using ScaleTransform = System.Windows.Media.ScaleTransform;
 
 namespace BeautyOfNumbers.App.Wpf.ViewModels;
 
 public class MainWindowViewModel : INotifyPropertyChanged
 {
-    private const string TempImagePath = "temp_preview.png";
-    private const double ZoomIncrement = 0.2;
-    private const double MinZoom = 0.2;
-    private const double MaxZoom = 5.0;
     private const int MinNumber = 10;
     private const int MaxNumber = 100000;
-    // M0 practical bound: monolithic sieve and per-point OxyPlot series (docs/03-guides/build-and-run.md).
     private const int MaxRangeEnd = 100_000_000;
     private const double MinPointSize = 0.5;
 
     private string numberRangeStart = "1";
     private string numberRangeCount = "1000";
     private bool showOnlyPrimes = true;
-    private BitmapImage previewImage = new();
-    private ScaleTransform imageTransform = new(1.0, 1.0);
+    private Scene? scene;
     private double pointSize = 5;
     private Color backgroundColor = Colors.White;
     private Color primeColor = Colors.Red;
@@ -42,15 +34,12 @@ public class MainWindowViewModel : INotifyPropertyChanged
     private int progress;
     private string validationMessage = string.Empty;
     private bool isValid = true;
-    private double zoomLevel = 1.0;
+    private string progressStage = string.Empty;
 
     public MainWindowViewModel()
     {
         GenerateCommand = new RelayCommand(GenerateImage, () => IsValid && !IsGenerating);
         SaveCommand = new RelayCommand(SaveImage, () => IsValid && !IsGenerating);
-        ZoomInCommand = new RelayCommand(ZoomIn, CanZoomIn);
-        ZoomOutCommand = new RelayCommand(ZoomOut, CanZoomOut);
-        ResetZoomCommand = new RelayCommand(ResetZoom);
 
         ValidateInput();
     }
@@ -59,11 +48,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
 
     public ICommand SaveCommand { get; }
 
-    public ICommand ZoomInCommand { get; }
-
-    public ICommand ZoomOutCommand { get; }
-
-    public ICommand ResetZoomCommand { get; }
+    public RenderStyle CurrentStyle => BuildStyle();
 
     public bool IsGenerating
     {
@@ -86,6 +71,19 @@ public class MainWindowViewModel : INotifyPropertyChanged
             if (progress != value)
             {
                 progress = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public string ProgressStage
+    {
+        get => progressStage;
+        private set
+        {
+            if (progressStage != value)
+            {
+                progressStage = value;
                 OnPropertyChanged();
             }
         }
@@ -168,6 +166,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
             {
                 pointSize = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(CurrentStyle));
             }
         }
     }
@@ -181,6 +180,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
             {
                 backgroundColor = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(CurrentStyle));
             }
         }
     }
@@ -194,6 +194,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
             {
                 primeColor = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(CurrentStyle));
             }
         }
     }
@@ -207,43 +208,17 @@ public class MainWindowViewModel : INotifyPropertyChanged
             {
                 nonPrimeColor = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(CurrentStyle));
             }
         }
     }
 
-    public BitmapImage PreviewImage
+    public Scene? Scene
     {
-        get => previewImage;
+        get => scene;
         private set
         {
-            if (previewImage != value)
-            {
-                previewImage = value;
-                OnPropertyChanged();
-            }
-        }
-    }
-
-    public double ZoomLevel
-    {
-        get => zoomLevel;
-        private set
-        {
-            if (Math.Abs(zoomLevel - value) > 0.001)
-            {
-                zoomLevel = value;
-                OnPropertyChanged();
-                UpdateImageTransform();
-            }
-        }
-    }
-
-    public ScaleTransform ImageTransform
-    {
-        get => imageTransform;
-        private set
-        {
-            imageTransform = value;
+            scene = value;
             OnPropertyChanged();
         }
     }
@@ -253,37 +228,6 @@ public class MainWindowViewModel : INotifyPropertyChanged
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
-
-    private void ZoomIn()
-    {
-        ZoomLevel = Math.Min(MaxZoom, ZoomLevel + ZoomIncrement);
-    }
-
-    private void ZoomOut()
-    {
-        ZoomLevel = Math.Max(MinZoom, ZoomLevel - ZoomIncrement);
-    }
-
-    private void ResetZoom()
-    {
-        ZoomLevel = 1.0;
-    }
-
-    private bool CanZoomIn()
-    {
-        return ZoomLevel < MaxZoom;
-    }
-
-    private bool CanZoomOut()
-    {
-        return ZoomLevel > MinZoom;
-    }
-
-    private void UpdateImageTransform()
-    {
-        ImageTransform = new ScaleTransform(ZoomLevel, ZoomLevel);
-        CommandManager.InvalidateRequerySuggested();
     }
 
     private void ValidateInput()
@@ -355,8 +299,25 @@ public class MainWindowViewModel : INotifyPropertyChanged
         {
             IsGenerating = true;
             Progress = 0;
-            await GenerateAndDisplayImage(TempImagePath);
-            Progress = 100;
+            ProgressStage = "Building...";
+
+            if (!int.TryParse(NumberRangeStart, out int start) || !int.TryParse(NumberRangeCount, out int count))
+            {
+                return;
+            }
+
+            count = Math.Clamp(count, MinNumber, MaxNumber);
+            RenderRequest request = BuildRequest(start, count);
+            var progressReporter = new Progress<ProgressReport>(OnProgress);
+
+            Scene? builtScene = await Task.Run(() =>
+            {
+                var classifier = new SievePrimeClassifier(SievePrimeClassifier.LimitFor(request.Range));
+                var builder = new SceneBuilder(classifier);
+                return builder.Build(request, progressReporter);
+            });
+
+            Scene = builtScene;
         }
         catch (Exception ex)
         {
@@ -366,6 +327,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
         finally
         {
             IsGenerating = false;
+            ProgressStage = string.Empty;
         }
     }
 
@@ -389,8 +351,27 @@ public class MainWindowViewModel : INotifyPropertyChanged
             {
                 IsGenerating = true;
                 Progress = 0;
-                await GenerateAndDisplayImage(saveFileDialog.FileName);
-                Progress = 100;
+                ProgressStage = "Building...";
+
+                if (!int.TryParse(NumberRangeStart, out int start) || !int.TryParse(NumberRangeCount, out int count))
+                {
+                    return;
+                }
+
+                count = Math.Clamp(count, MinNumber, MaxNumber);
+                RenderRequest request = BuildRequest(start, count);
+                var progressReporter = new Progress<ProgressReport>(OnProgress);
+
+                await Task.Run(() =>
+                {
+                    var classifier = new SievePrimeClassifier(SievePrimeClassifier.LimitFor(request.Range));
+                    var builder = new SceneBuilder(classifier);
+                    Scene exportScene = builder.Build(request, progressReporter);
+
+                    var renderer = new SkiaSceneRenderer();
+                    PngExporter.Export(exportScene, request.Style, request.Output, saveFileDialog.FileName, renderer, progressReporter);
+                });
+
                 System.Windows.MessageBox.Show($"Image saved to: {saveFileDialog.FileName}", "Success",
                     System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
             }
@@ -403,42 +384,15 @@ public class MainWindowViewModel : INotifyPropertyChanged
         finally
         {
             IsGenerating = false;
+            ProgressStage = string.Empty;
+            Progress = 100;
         }
     }
 
-    private async Task GenerateAndDisplayImage(string filePath)
+    private void OnProgress(ProgressReport report)
     {
-        if (!int.TryParse(NumberRangeStart, out int start) || !int.TryParse(NumberRangeCount, out int count))
-        {
-            throw new ArgumentException("Please enter valid numbers");
-        }
-
-        count = Math.Clamp(count, MinNumber, MaxNumber);
-        RenderRequest request = BuildRequest(start, count);
-
-        Progress = 10;
-        await Task.Run(() =>
-        {
-            var classifier = new SievePrimeClassifier(SievePrimeClassifier.LimitFor(request.Range));
-            new OxyPlotSpiralRenderer(classifier).Render(request, filePath);
-        });
-        Progress = 80;
-        await Task.Run(() => LoadPreviewImage(filePath));
-        Progress = 90;
-    }
-
-    private void LoadPreviewImage(string filePath)
-    {
-        if (System.IO.File.Exists(filePath))
-        {
-            var bitmap = new BitmapImage();
-            bitmap.BeginInit();
-            bitmap.CacheOption = BitmapCacheOption.OnLoad;
-            bitmap.UriSource = new Uri(filePath, UriKind.RelativeOrAbsolute);
-            bitmap.EndInit();
-            bitmap.Freeze();
-            PreviewImage = bitmap;
-        }
+        ProgressStage = report.Stage == RenderStage.Building ? "Building scene..." : "Encoding PNG...";
+        Progress = (int)(report.Fraction * 100);
     }
 
     private RenderRequest BuildRequest(int start, int count)

@@ -9,7 +9,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="OxyPlot.SkiaSharp" />
+    <PackageReference Include="SkiaSharp" />
   </ItemGroup>
 
 </Project>

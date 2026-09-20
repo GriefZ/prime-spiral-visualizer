@@ -90,7 +90,13 @@ if (errors.Count > 0)
 
 var classifier = new SievePrimeClassifier(SievePrimeClassifier.LimitFor(request.Range));
 var stopwatch = Stopwatch.StartNew();
-new OxyPlotSpiralRenderer(classifier).Render(request, outputPath);
+
+var builder = new SceneBuilder(classifier);
+var scene = builder.Build(request);
+
+var renderer = new SkiaSceneRenderer();
+PngExporter.Export(scene, request.Style, request.Output, outputPath, renderer);
+
 stopwatch.Stop();
 Console.WriteLine($"Saved {outputPath} in {stopwatch.ElapsedMilliseconds} ms.");
 return 0;
