@@ -9,7 +9,7 @@
 
 ## Инфраструктура
 
-- Фреймворк: xUnit (закрепляется в M0).
+- Фреймворк: xUnit (закреплён в M0).
 - Проекты: `BeautyOfNumbers.Core.Tests`, `BeautyOfNumbers.Rendering.Tests`.
 - Запуск: `dotnet test`; фильтр — `dotnet test --filter Category=Layouts`.
 - CI (M0): GitHub Actions, `windows-latest`, .NET 8: `dotnet build` + `dotnet test` на push и PR в `main`.

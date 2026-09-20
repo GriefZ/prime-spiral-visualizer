@@ -1,6 +1,6 @@
 # Рендеринг (BeautyOfNumbers.Rendering)
 
-Статус: целевое состояние. Заменяет `SpiralMaker/PlotUtils.cs`.
+Статус: целевое состояние (SkiaSharp, M1). В M0 рендер временно работает на OxyPlot (`OxyPlotSpiralRenderer`); зависимость от OxyPlot удаляется в M1 ([ADR-0002](adr/0002-skiasharp-renderer.md)).
 
 ## Границы ответственности
 
@@ -19,7 +19,7 @@
 | --- | --- | --- |
 | `SkiaSharp` | `Rendering`, `Cli`, `App.Wpf` | Рисование и кодирование PNG. |
 | `SkiaSharp.Views.WPF` | только `App.Wpf` | `SKElement` для живого превью. |
-| `OxyPlot.SkiaSharp` | — | Удаляется ([ADR-0002](adr/0002-skiasharp-renderer.md)). |
+| `OxyPlot.SkiaSharp` | `Rendering` | Временно в M0 (`OxyPlotSpiralRenderer`); удаляется в M1 ([ADR-0002](adr/0002-skiasharp-renderer.md)). |
 
 ## Пайплайн
 

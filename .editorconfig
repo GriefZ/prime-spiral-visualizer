@@ -1,0 +1,19 @@
+root = true
+
+[*]
+charset = utf-8
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.cs]
+indent_style = space
+indent_size = 4
+csharp_style_namespace_declarations = file_scoped:warning
+
+[*.{xaml,csproj,props,targets,sln}]
+indent_style = space
+indent_size = 2
+
+# Tests follow the Method_Scenario_ExpectedResult convention documented in docs/03-guides/testing.md.
+[tests/**/*.cs]
+dotnet_diagnostic.CA1707.severity = none

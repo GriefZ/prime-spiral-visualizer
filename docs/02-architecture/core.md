@@ -46,12 +46,14 @@ public sealed record Scene(
 ```csharp
 public interface IPrimeClassifier
 {
+    int Limit { get; }          // включительно; IsPrime вне границ возвращает false
     bool IsPrime(int value);
 }
 
 public sealed class SievePrimeClassifier : IPrimeClassifier
 {
     public SievePrimeClassifier(int limit);   // включительно
+    public static int LimitFor(NumberRange range);  // лимит для диапазона без построения решета
     public int Limit { get; }
 }
 ```

@@ -1,6 +1,6 @@
 # Обзор архитектуры
 
-Статус: целевое состояние. Текущий код — прототип, план перехода описан в [M0](../01-product/roadmap.md) и [ADR-0001](adr/0001-core-split-and-rename.md).
+Статус: структура M0 внедрена (`src/Core`, `Rendering`, `Cli`, `App.Wpf`, `tests/`); описанное ниже — целевое состояние для M1+. В M0 рендер временно работает на OxyPlot, зависимость удаляется в M1 ([ADR-0002](adr/0002-skiasharp-renderer.md)).
 
 ## Принципы
 
@@ -16,7 +16,7 @@
 graph TD
     App["BeautyOfNumbers.App.Wpf<br/>(студия, MVVM)"]
     Cli["BeautyOfNumbers.Cli<br/>(рендер по пресету)"]
-    Rendering["BeautyOfNumbers.Rendering<br/>(SkiaSharp: сцена → пиксели)"]
+    Rendering["BeautyOfNumbers.Rendering<br/>(в M0 OxyPlot, в M1 SkiaSharp: сцена → пиксели)"]
     Core["BeautyOfNumbers.Core<br/>(числа, классификаторы, раскладки)"]
     CoreTests["Core.Tests"]
     RenderTests["Rendering.Tests"]
@@ -33,7 +33,7 @@ graph TD
 | Проект | Тип | Ответственность |
 | --- | --- | --- |
 | `BeautyOfNumbers.Core` | `net8.0` | Диапазоны, классификаторы простоты, раскладки, модель сцены, стиль, модель пресета, валидация. Ноль внешних зависимостей. |
-| `BeautyOfNumbers.Rendering` | `net8.0` | SkiaSharp: построение сцены из запроса, отрисовка, кодирование PNG, потоки прогресса. Единственная зависимость — `SkiaSharp`. |
+| `BeautyOfNumbers.Rendering` | `net8.0` | Построение сцены из запроса, отрисовка, кодирование PNG, потоки прогресса. В M0 — `OxyPlotSpiralRenderer` (временный), в M1 — SkiaSharp. |
 | `BeautyOfNumbers.Cli` | `net8.0` | Аргументы, чтение пресета, вызов рендера, коды возврата. |
 | `BeautyOfNumbers.App.Wpf` | `net8.0-windows` | Окно, MVVM, Skia-превью, зум/панорама, диалоги, хранение пресетов. |
 | `BeautyOfNumbers.Core.Tests` | `net8.0` | Юнит-тесты ядра. |
@@ -97,7 +97,7 @@ flowchart LR
 - [ADR-0003. Живое превью без временных файлов](adr/0003-live-preview-no-temp-files.md)
 - [Шаблон ADR](adr/0000-template.md)
 
-## Что переезжает из текущего кода
+## Что переехало из прототипа (M0)
 
 | Сейчас | Куда |
 | --- | --- |
@@ -115,7 +115,7 @@ flowchart LR
 
 | Вопрос | Решение |
 | --- | --- |
-| MVVM-тулкит: свой `RelayCommand` или `CommunityToolkit.Mvvm`? | Отложено до M0: сравнить объём шаблонного кода. |
+| MVVM-тулкит: свой `RelayCommand` или `CommunityToolkit.Mvvm`? | Решено в M0: остаёмся на своём `RelayCommand` (команд мало, лишняя зависимость не нужна); `CommunityToolkit.Mvvm` пересматриваем в M1 при росте числа команд. |
 | Библиотека логирования | Отложено до M1. |
 | SVG-экспорт: `Svg.Skia` или собственная запись? | Отложено до M3 после прототипа. |
 | Нужен ли DPI в метаданных PNG или достаточно размеров в пикселях? | Решить в M2 по факту использования. |

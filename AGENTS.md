@@ -5,7 +5,7 @@
 ## Сборка и проверки
 
 ```powershell
-dotnet build PrimeSpiralVisualizer.sln
+dotnet build BeautyOfNumbers.sln
 dotnet test
 ```
 

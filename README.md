@@ -6,7 +6,7 @@
 
 Русский | [English ↓](#english)
 
-![Пример архимедовой спирали](temp_preview.png)
+![Пример архимедовой спирали, 100 000 чисел](docs/assets/archimedean-100k.png)
 
 ---
 
@@ -22,32 +22,35 @@ Beauty of Numbers — десктопное приложение (WPF, .NET 8) д
 
 ### Статус
 
-Ранняя стадия. Работает прототип UI (превью через временный PNG-файл, зум, выбор цветов), консольный пример генерирует один файл. Идёт переход к архитектуре Core / Rendering / Cli / App — см. [roadmap](docs/01-product/roadmap.md).
+Фундамент M0 готов: решение разделено на `Core / Rendering / Cli / App.Wpf`, математика живёт в ядре, есть тесты и CI. Следующая веха — M1 (рендер на SkiaSharp, живое превью) — см. [roadmap](docs/01-product/roadmap.md).
 
 ### Возможности (сейчас)
 
-- Генерация архимедовой спирали `r = n`, `θ = n` для последовательностей до 100 000 чисел.
-- Подсветка простых чисел отдельным цветом.
-- WPF-UI: выбор цветов, размера точек, зум и панорамирование превью, сохранение PNG.
-- Консольный пример: `GeneratePrimes(80 000)` → PNG.
+- Архимедова спираль (`r = n`, `θ = n`); диапазон задаётся как `[Start, Start + Count)` (в M0: count до 100 000, конец диапазона до 100 000 000).
+- Решето Эратосфена в ядре; простые числа подсвечиваются отдельным цветом, фильтр «только простые» — чекбокс в студии и `--only-primes` в CLI.
+- WPF-студия: диапазон, цвета, размер точек, зум превью, сохранение PNG (превью пока через временный файл — это снимется в M1).
+- CLI: одиночный рендер PNG; пресеты и пакетный рендер — M3.
 
 ### Быстрый старт
 
 Требуется .NET 8 SDK.
 
 ```powershell
-dotnet build PrimeSpiralVisualizer.sln
-dotnet run --project PrimeSpiralVisualizerUI   # студия (WPF)
-dotnet run --project PrimeSpiralVisualizer     # консольный пример, PNG в рабочей папке
+dotnet build BeautyOfNumbers.sln
+dotnet run --project src/BeautyOfNumbers.App.Wpf   # студия (WPF)
+dotnet run --project src/BeautyOfNumbers.Cli       # CLI: plot.png в рабочей папке
+dotnet test                                        # тесты ядра
 ```
 
 ### Структура репозитория
 
 | Путь | Назначение |
 | --- | --- |
-| `SpiralMaker/` | библиотека: раскладка точек и экспорт PNG (OxyPlot + SkiaSharp) |
-| `PrimeSpiralVisualizer/` | консольный пример генерации |
-| `PrimeSpiralVisualizerUI/` | WPF-студия (MVVM) |
+| `src/BeautyOfNumbers.Core/` | ядро: диапазон, классификаторы простоты, раскладки, стиль, запросы, валидация, пресеты; без внешних зависимостей |
+| `src/BeautyOfNumbers.Rendering/` | рендер PNG (временно OxyPlot; в M1 — SkiaSharp) |
+| `src/BeautyOfNumbers.Cli/` | консольный рендер |
+| `src/BeautyOfNumbers.App.Wpf/` | WPF-студия (MVVM) |
+| `tests/BeautyOfNumbers.Core.Tests/` | юнит-тесты ядра (xUnit) |
 | `docs/` | документация: от продукта до математики |
 
 ### Документация
@@ -59,12 +62,13 @@ dotnet run --project PrimeSpiralVisualizer     # консольный приме
 - [Глоссарий](docs/01-product/glossary.md)
 - [Архитектура](docs/02-architecture/overview.md)
 - [Как собрать и запустить](docs/03-guides/build-and-run.md)
+- [Стратегия тестирования](docs/03-guides/testing.md)
 - [Математика раскладок](docs/04-math/layouts.md)
 - [Полный индекс документации](docs/README.md)
 
 ### Лицензия
 
-Пока не выбрана — планируется в вехе M0 ([roadmap](docs/01-product/roadmap.md)).
+MIT — см. [LICENSE](LICENSE).
 
 ---
 
@@ -80,17 +84,22 @@ Product formula:
 
 ### Status
 
-Early stage. A UI prototype works (PNG-file-based preview, zoom, color picking); a console sample renders a single file. Migration to the Core / Rendering / Cli / App architecture is in progress — see the [roadmap](docs/01-product/roadmap.md).
+The M0 foundation is in place: the solution is split into `Core / Rendering / Cli / App.Wpf`, the math lives in the core, and tests plus CI are set up. Next is M1 (SkiaSharp rendering, live preview) — see the [roadmap](docs/01-product/roadmap.md).
 
 ### Quick start
 
 Requires .NET 8 SDK.
 
 ```powershell
-dotnet build PrimeSpiralVisualizer.sln
-dotnet run --project PrimeSpiralVisualizerUI   # WPF studio
-dotnet run --project PrimeSpiralVisualizer     # console sample, PNG in the working directory
+dotnet build BeautyOfNumbers.sln
+dotnet run --project src/BeautyOfNumbers.App.Wpf   # WPF studio
+dotnet run --project src/BeautyOfNumbers.Cli       # CLI: renders plot.png in the working directory
+dotnet test                                        # core tests
 ```
+
+### License
+
+MIT — see [LICENSE](LICENSE).
 
 ### Documentation
 
