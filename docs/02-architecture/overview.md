@@ -1,6 +1,6 @@
 # Обзор архитектуры
 
-Статус: структура M0 внедрена (`src/Core`, `Rendering`, `Cli`, `App.Wpf`, `tests/`); описанное ниже — целевое состояние для M1+. В M0 рендер временно работает на OxyPlot, зависимость удаляется в M1 ([ADR-0002](adr/0002-skiasharp-renderer.md)).
+Статус: структура M1 внедрена (`src/Core`, `Rendering`, `Cli`, `App.Wpf`, `tests/`, `benchmarks/`); рендер работает на SkiaSharp, M1 закрыта ([rendering.md](rendering.md), [ADR-0002](adr/0002-skiasharp-renderer.md)).
 
 ## Принципы
 
@@ -16,7 +16,7 @@
 graph TD
     App["BeautyOfNumbers.App.Wpf<br/>(студия, MVVM)"]
     Cli["BeautyOfNumbers.Cli<br/>(рендер по пресету)"]
-    Rendering["BeautyOfNumbers.Rendering<br/>(в M0 OxyPlot, в M1 SkiaSharp: сцена → пиксели)"]
+    Rendering["BeautyOfNumbers.Rendering<br/>(SkiaSharp: сцена → пиксели)"]
     Core["BeautyOfNumbers.Core<br/>(числа, классификаторы, раскладки)"]
     CoreTests["Core.Tests"]
     RenderTests["Rendering.Tests"]
@@ -33,11 +33,11 @@ graph TD
 | Проект | Тип | Ответственность |
 | --- | --- | --- |
 | `BeautyOfNumbers.Core` | `net8.0` | Диапазоны, классификаторы простоты, раскладки, модель сцены, стиль, модель пресета, валидация. Ноль внешних зависимостей. |
-| `BeautyOfNumbers.Rendering` | `net8.0` | Построение сцены из запроса, отрисовка, кодирование PNG, потоки прогресса. В M0 — `OxyPlotSpiralRenderer` (временный), в M1 — SkiaSharp. |
+| `BeautyOfNumbers.Rendering` | `net8.0` | Построение сцены из запроса, отрисовка на SkiaSharp (батчинг по цвету и квантованному размеру), кодирование PNG, потоки прогресса. |
 | `BeautyOfNumbers.Cli` | `net8.0` | Аргументы, чтение пресета, вызов рендера, коды возврата. |
 | `BeautyOfNumbers.App.Wpf` | `net8.0-windows` | Окно, MVVM, Skia-превью, зум/панорама, диалоги, хранение пресетов. |
 | `BeautyOfNumbers.Core.Tests` | `net8.0` | Юнит-тесты ядра. |
-| `BeautyOfNumbers.Rendering.Tests` | `net8.0` | Смоук- и детерминизм-тесты рендера. |
+| `BeautyOfNumbers.Rendering.Tests` | `net8.0` | Смоук-, детерминизм- и паритет-тесты рендера. |
 
 ## Пайплайн
 
@@ -68,7 +68,7 @@ flowchart LR
 
 Правила:
 
-- при быстрых изменениях параметров предыдущая задача отменяется, в очереди остаётся не более одной отложенной перерисовки (debounce 150–250 мс);
+- при быстрых изменениях параметров предыдущая задача отменяется, в очереди остаётся не более одной отложенной перерисовки (debounce 200 мс);
 - `IProgress<ProgressReport>` сообщает этап и долю; UI показывает реальный прогресс, а не таймер;
 - отмена — кооперативная, через `CancellationToken`, проверяется в циклах генерации и раскладки.
 

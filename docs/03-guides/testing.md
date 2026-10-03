@@ -11,8 +11,9 @@
 
 - Фреймворк: xUnit (закреплён в M0).
 - Проекты: `BeautyOfNumbers.Core.Tests`, `BeautyOfNumbers.Rendering.Tests`.
-- Запуск: `dotnet test`; фильтр — `dotnet test --filter Category=Layouts`.
-- CI (M0): GitHub Actions, `windows-latest`, .NET 8: `dotnet build` + `dotnet test` на push и PR в `main`.
+- Запуск: `dotnet test`.
+- Бенчмарки: `benchmarks/BeautyOfNumbers.Benchmarks`, только локально ([benchmarks.md](benchmarks.md)).
+- CI: GitHub Actions, `windows-latest`, .NET 8: `dotnet build` + `dotnet test` на push и PR в `main`.
 
 ## Что покрываем (ядро)
 
@@ -48,6 +49,8 @@
 - Границы сцены: пустая сцена и сцена из одной точки не падают.
 - Отмена: `CancellationToken`, отменённый заранее, прерывает `Build` быстро.
 - Экспорт: файл создаётся, ширина/высота соответствуют `OutputOptions`.
+- Паритет: батчинг и наивный путь на 100k дают близкие пиксели.
+- Ноль временных файлов: превью и экспорт рисуют в `SKSurface`; файлы появляются только по явному пути пользователя (проверяется ревью и ручным чек-листом ниже).
 
 ## Именование тестов
 
