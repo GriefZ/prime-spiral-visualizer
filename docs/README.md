@@ -37,6 +37,7 @@
 - [build-and-run.md](03-guides/build-and-run.md) — сборка, запуск, тесты.
 - [contributing.md](03-guides/contributing.md) — процесс работы с репозиторием.
 - [testing.md](03-guides/testing.md) — стратегия тестирования.
+- [benchmarks.md](03-guides/benchmarks.md) — локальные замеры производительности и метрики.
 
 ### [04-math](04-math/) — математика
 

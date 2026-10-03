@@ -54,6 +54,14 @@ dotnet test
 
 Подробнее — [testing.md](testing.md).
 
+## Бенчмарки
+
+```powershell
+dotnet run -c Release --project benchmarks/BeautyOfNumbers.Benchmarks -- --filter *Sieve*
+```
+
+Локальные замеры, в CI не запускаются. Подробнее — [benchmarks.md](benchmarks.md).
+
 ## Типичные проблемы
 
 | Симптом | Решение |
@@ -68,3 +76,4 @@ dotnet test
 
 - [contributing.md](contributing.md)
 - [testing.md](testing.md)
+- [benchmarks.md](benchmarks.md)
