@@ -52,8 +52,9 @@ for (int index = 0; index < args.Length; index++)
     }
 }
 
-const int maxCount = 100_000;
-// M0 practical bound: monolithic sieve and per-point OxyPlot series (docs/03-guides/build-and-run.md).
+const int maxCount = 1_000_000;
+// Range end bound is limited by the monolithic sieve (docs/04-math/sequences.md); count is limited
+// by scene memory (ScenePoint is ~24 B) and by the M1 benchmarks (docs/03-guides/benchmarks.md).
 const int maxRangeEnd = 100_000_000;
 
 long rangeEnd = (long)start + count - 1;
@@ -125,7 +126,7 @@ static void PrintUsage()
     Console.WriteLine();
     Console.WriteLine("Options:");
     Console.WriteLine("  --start <n>      First number in the range (default: 1).");
-    Console.WriteLine("  --count <n>      How many numbers to render (default: 80000, max: 100000).");
+    Console.WriteLine("  --count <n>      How many numbers to render (default: 80000, max: 1000000).");
     Console.WriteLine("  --output <path>  Output PNG path (default: plot.png).");
     Console.WriteLine("  --only-primes    Skip composite numbers.");
     Console.WriteLine("  --help           Show this help.");
