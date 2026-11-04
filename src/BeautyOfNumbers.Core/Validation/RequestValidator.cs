@@ -49,9 +49,29 @@ public sealed class RequestValidator : IRequestValidator
             errors.Add(new ValidationError(nameof(request.Output), "Output width and height must be greater than 0."));
         }
 
+        if (request.Output.Width > OutputOptions.MaxDimension || request.Output.Height > OutputOptions.MaxDimension)
+        {
+            errors.Add(new ValidationError(
+                nameof(request.Output),
+                $"Output width and height must not exceed {OutputOptions.MaxDimension}."));
+        }
+
+        if ((long)request.Output.Width * request.Output.Height > OutputOptions.MaxPixelCount)
+        {
+            errors.Add(new ValidationError(
+                nameof(request.Output),
+                $"Output must not exceed {OutputOptions.MaxPixelCount:N0} pixels."));
+        }
+
         if (request.Output.Dpi <= 0)
         {
             errors.Add(new ValidationError(nameof(request.Output), "Output DPI must be greater than 0."));
+        }
+        else if (request.Output.Dpi > OutputOptions.MaxDpi)
+        {
+            errors.Add(new ValidationError(
+                nameof(request.Output),
+                $"Output DPI must not exceed {OutputOptions.MaxDpi}."));
         }
 
         if (request.LayoutId != ArchimedeanSpiral.LayoutId)

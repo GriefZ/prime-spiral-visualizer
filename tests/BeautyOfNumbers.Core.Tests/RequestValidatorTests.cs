@@ -91,6 +91,71 @@ public sealed class RequestValidatorTests
     }
 
     [Fact]
+    public void Validate_WhenWidthExceedsMaxDimension_ReturnsOutputError()
+    {
+        RenderRequest request = CreateRequest(
+            new NumberRange(1, 10),
+            output: new OutputOptions(OutputOptions.MaxDimension + 1, 1, 300));
+
+        IReadOnlyList<ValidationError> errors = CreateValidator().Validate(request);
+
+        Assert.Contains(errors, error => error.Field == "Output");
+    }
+
+    [Fact]
+    public void Validate_WhenHeightExceedsMaxDimension_ReturnsOutputError()
+    {
+        RenderRequest request = CreateRequest(
+            new NumberRange(1, 10),
+            output: new OutputOptions(1, OutputOptions.MaxDimension + 1, 300));
+
+        IReadOnlyList<ValidationError> errors = CreateValidator().Validate(request);
+
+        Assert.Contains(errors, error => error.Field == "Output");
+    }
+
+    [Fact]
+    public void Validate_WhenPixelCountExceedsLimit_ReturnsOutputError()
+    {
+        RenderRequest request = CreateRequest(
+            new NumberRange(1, 10),
+            output: new OutputOptions(10_000, 10_000, 300));
+
+        IReadOnlyList<ValidationError> errors = CreateValidator().Validate(request);
+
+        Assert.Contains(errors, error => error.Field == "Output");
+    }
+
+    [Fact]
+    public void Validate_WhenDpiExceedsMaxDpi_ReturnsOutputError()
+    {
+        RenderRequest request = CreateRequest(
+            new NumberRange(1, 10),
+            output: new OutputOptions(100, 100, OutputOptions.MaxDpi + 1));
+
+        IReadOnlyList<ValidationError> errors = CreateValidator().Validate(request);
+
+        Assert.Contains(errors, error => error.Field == "Output");
+    }
+
+    [Fact]
+    public void Validate_WhenOutputIsAtUpperBounds_ReturnsNoErrors()
+    {
+        RenderRequest dimensionBoundary = CreateRequest(
+            new NumberRange(1, 10),
+            output: new OutputOptions(OutputOptions.MaxDimension, 1, OutputOptions.MaxDpi));
+        RenderRequest pixelBoundary = CreateRequest(
+            new NumberRange(1, 10),
+            output: new OutputOptions(8_000, 8_000, 300));
+
+        IReadOnlyList<ValidationError> dimensionErrors = CreateValidator().Validate(dimensionBoundary);
+        IReadOnlyList<ValidationError> pixelErrors = CreateValidator().Validate(pixelBoundary);
+
+        Assert.Empty(dimensionErrors);
+        Assert.Empty(pixelErrors);
+    }
+
+    [Fact]
     public void Validate_WhenLayoutIsUnknown_ReturnsLayoutIdError()
     {
         RenderRequest request = CreateRequest(new NumberRange(1, 10), layoutId: "unknown-layout");
